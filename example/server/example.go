@@ -11,10 +11,14 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"os"
+	"runtime"
 	"time"
 
+	"github.com/cilium/ebpf/rlimit"
 	"github.com/go-chi/chi"
 	"github.com/hf/quicket"
+	"github.com/hf/quicket/xdp"
 	"github.com/lucas-clemente/quic-go/http3"
 )
 
@@ -60,10 +64,50 @@ func main() {
 
 	fmt.Printf("addr: %s\n", udpconn.LocalAddr().String())
 
+	mapstore := quicket.NewMapStore()
+
+	if runtime.GOOS == "linux" {
+		ifaceName := os.Getenv("QUICKET_XDP_IFACE")
+
+		if ifaceName != "" {
+			if err := rlimit.RemoveMemlock(); err != nil {
+				panic(err)
+			}
+
+			iface, err := net.InterfaceByName(ifaceName)
+			if err != nil {
+				panic(err)
+			}
+
+			xdplink, err := xdp.Open()
+			if err != nil {
+				panic(err)
+			}
+			defer xdplink.Close()
+
+			if err := xdplink.Attach(iface); err != nil {
+				panic(err)
+			}
+
+			addrs, err := iface.Addrs()
+			if err != nil {
+				panic(err)
+			}
+
+			fmt.Printf("Attached eBPF XDP filter to interface %v (%v)\n", iface.Name, addrs)
+
+			if err := xdplink.AttachPort(uint16(udpconn.LocalAddr().(*net.UDPAddr).Port)); err != nil {
+				panic(err)
+			}
+
+			mapstore.XDP = xdplink
+		}
+	}
+
 	conn := quicket.NewServerConnection(
 		context.Background(),
 		udpconn,
-		quicket.NewMapStore(),
+		mapstore,
 	)
 
 	router := chi.NewRouter()
