@@ -31,8 +31,8 @@ applies:
 - Both have previously exchanged TLS trust information
 - Both *always* use 12-byte connection IDs (this can be modified)
 - Both assume QUIC version 1, and do no MTU discovery
-- `A` produces an intiial packet and discloses its connection IDs to `R`
-- `B` receives the inidial handshake out-of-band and discloses its connection
+- `A` produces an initial packet and discloses its connection IDs to `R`
+- `B` receives the initial handshake out-of-band and discloses its connection
   IDs to `R`
 - `A` and `B` talk to `R` via HTTP3 or another QUIC-based protocol
 - `R` maps all of `A`'s connection IDs to its public UDP address, and forwards
@@ -68,7 +68,7 @@ be as complex as they choose, and can use text or binary encodings as well.
 
 **Protocol**: WebRTC uses SCTP (UDP) over DTLS, which has similar but not
 equivalent properties with QUIC. QUIC has TLS built in and the connection is
-between the peers, rather than through a middlebox. QUIC offers both streams
+between the peers, rather than through a middle-box. QUIC offers both streams
 and datagrams, in various modes, and has excellent privacy features.
 
 **Support**: WebRTC is supported in browsers, while Quicket is not supported in
@@ -99,6 +99,10 @@ Relay server:
 go run github.com/hf/quicket/example/server
 ```
 
+To use eBPF on Linux in the example, you should set this type of environment
+variable `QUICKET_XDP_IFACE="lo"` which will attach the Quicket eBPF XDP
+filter on the interface with the provided name.
+
 Copy the port of the listening address, called `<port>`:
 
 ```shell
@@ -115,14 +119,30 @@ cat /tmp/packet.json | QHOST='127.0.0.1:<port>' go run github.com/hf/quicket/exa
 ```
 
 Accepter will now read the initial packet from the file and begin talking to
-the dialer over the server. You should see a `hello` message being pritned
+the dialer over the server. You should see a `hello` message being printed
 every second, this is a message sent from the dialer.
+
+## eBPF (XDP) filter
+
+This implementation offers an eBPF XDP filter that significantly improves
+performance in relaying QUIC packets to peers.
+
+It works by mapping the 12 byte connection IDs (CID) to an IPv4 + UDP port
+pair. It transmits only short-form QUIC packets directly out of the NIC.
+
+The filter uses a LRU map of about 36MB which can hold about 2m redirect
+entries. When the map gets full, some QUIC packets are likely to be rejected by
+the filter. A ring-buffer map (which can hold about 5k CIDs) is provided for
+this case which will notify userspace of any rejected CIDs, so that it can
+re-populate the map with any improperly dropped packets.
+
+Since UDP is assumed to be unreliable, this approach suffices for most
+use-cases.
 
 ## Further work
 
-This has not been tested on a live network yet. Performance is likely not
-great, but can be massively improved. Linux servers can use eBPF to efficiently
-implement the relay which also needs to be done.
+This has not been tested on a live network yet. Performance is improving but
+more work is needed.
 
 Some guidelines or standardization of the registration protocol is probably
 useful. Right now the examples use a `POST /v1/register` unsecured endpoint to
@@ -131,7 +151,11 @@ simple sequential counter.
 
 ## License
 
-Copyright &copy; 2022 Stojan Dimitrovski. Some rights reserved.
+Copyright &copy; 2022-2023 Stojan Dimitrovski. Some rights reserved.
 
 Licensed under the MIT X11 license. You can get a copy of it in `LICENSE`.
+
+The eBPF XDP filter can also be licensed under GPLv2 if you so please. This is
+necessary if you want to debug it with `bpf_printk`. You can find a copy of
+GPLv2 online.
 

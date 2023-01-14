@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -27,6 +28,9 @@ type MapStore struct {
 	sync.Mutex
 
 	Map map[string]net.Addr
+	XDP interface {
+		AddIPv4Redirect(addr *net.UDPAddr, cids ...[]byte) error
+	}
 }
 
 func NewMapStore() *MapStore {
@@ -36,12 +40,24 @@ func NewMapStore() *MapStore {
 }
 
 func (m *MapStore) PutAssociation(ctx context.Context, association Association) error {
-	m.Lock()
-	defer m.Unlock()
+	func() {
+		m.Lock()
+		defer m.Unlock()
 
-	for _, cid := range association.ConnectionIDs {
-		s := hex.EncodeToString(cid)
-		m.Map[s] = association.Addr
+		for _, cid := range association.ConnectionIDs {
+			s := hex.EncodeToString(cid)
+			m.Map[s] = association.Addr
+		}
+	}()
+
+	if m.XDP != nil {
+		switch association.Addr.(type) {
+		case *net.UDPAddr:
+			fmt.Println("adding XDP association")
+			if err := m.XDP.AddIPv4Redirect(association.Addr.(*net.UDPAddr), association.ConnectionIDs...); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
