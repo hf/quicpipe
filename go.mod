@@ -1,4 +1,4 @@
-module github.com/hf/quicket
+module github.com/hf/quicpipe
 
 go 1.19
 

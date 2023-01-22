@@ -184,7 +184,7 @@ handle_udp4(struct ethhdr* eth, struct iphdr* ipv4, void* data, void* data_end)
   void* portvalue = bpf_map_lookup_elem(&port_map, &(udp->dest));
 
   if (portvalue == NULL) {
-    // not a Quicket packet
+    // not a Quicpipe packet
     return XDP_PASS;
   }
 
@@ -223,7 +223,7 @@ handle_ipv6(struct ethhdr* eth, void* data, void* data_end)
 
 SEC("xdp")
 int
-xdp_quicket(struct xdp_md* ctx)
+xdp_quicpipe(struct xdp_md* ctx)
 {
   void* data = (void*)(long)ctx->data;
   void* data_end = (void*)(long)ctx->data_end;

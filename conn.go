@@ -1,4 +1,4 @@
-package quicket
+package quicpipe
 
 import "github.com/lucas-clemente/quic-go"
 

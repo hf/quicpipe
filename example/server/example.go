@@ -17,8 +17,8 @@ import (
 
 	"github.com/cilium/ebpf/rlimit"
 	"github.com/go-chi/chi"
-	"github.com/hf/quicket"
-	"github.com/hf/quicket/xdp"
+	"github.com/hf/quicpipe"
+	"github.com/hf/quicpipe/xdp"
 	"github.com/lucas-clemente/quic-go/http3"
 )
 
@@ -64,10 +64,10 @@ func main() {
 
 	fmt.Printf("addr: %s\n", udpconn.LocalAddr().String())
 
-	mapstore := quicket.NewMapStore()
+	mapstore := quicpipe.NewMapStore()
 
 	if runtime.GOOS == "linux" {
-		ifaceName := os.Getenv("QUICKET_XDP_IFACE")
+		ifaceName := os.Getenv("QUICPIPE_XDP_IFACE")
 
 		if ifaceName != "" {
 			if err := rlimit.RemoveMemlock(); err != nil {
@@ -104,7 +104,7 @@ func main() {
 		}
 	}
 
-	conn := quicket.NewServerConnection(
+	conn := quicpipe.NewServerConnection(
 		context.Background(),
 		udpconn,
 		mapstore,
@@ -145,7 +145,7 @@ func main() {
 	})
 
 	server := http3.Server{
-		QuicConfig: quicket.StandardQUICConfig(nil, true),
+		QuicConfig: quicpipe.StandardQUICConfig(nil, true),
 		Handler:    router,
 		TLSConfig: http3.ConfigureTLSConfig(&tls.Config{
 			Certificates: createCertificate(),

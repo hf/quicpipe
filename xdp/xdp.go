@@ -1,6 +1,6 @@
 package xdp
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go quicketxdp xdp.c -- -I/usr/include -I.
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go quicpipexdp xdp.c -- -I/usr/include -I.
 
 import (
 	"encoding/binary"
@@ -13,9 +13,9 @@ import (
 	"github.com/cilium/ebpf/ringbuf"
 )
 
-// XDPLink lets you interact with Quicket's eBPF XDP filter.
+// XDPLink lets you interact with Quicpipe's eBPF XDP filter.
 type XDPLink struct {
-	objs  quicketxdpObjects
+	objs  quicpipexdpObjects
 	links []link.Link
 
 	rbreader *ringbuf.Reader
@@ -27,7 +27,7 @@ type XDPLink struct {
 func Open() (*XDPLink, error) {
 	link := &XDPLink{}
 
-	if err := loadQuicketxdpObjects(&link.objs, nil); err != nil {
+	if err := loadQuicpipexdpObjects(&link.objs, nil); err != nil {
 		return nil, err
 	}
 
@@ -86,7 +86,7 @@ func (l *XDPLink) Close() error {
 // Attach attaches the eBPF filter to the provided interface.
 func (l *XDPLink) Attach(iface *net.Interface) error {
 	link, err := link.AttachXDP(link.XDPOptions{
-		Program:   l.objs.XdpQuicket,
+		Program:   l.objs.XdpQuicpipe,
 		Interface: iface.Index,
 	})
 	if err != nil {
@@ -129,7 +129,7 @@ func (l *XDPLink) DetachPort(port uint16) error {
 func (l *XDPLink) AddIPv4Redirect(addr *net.UDPAddr, cids ...[]byte) error {
 	ip := addr.IP.To4()
 
-	var value quicketxdpRedirect4
+	var value quicpipexdpRedirect4
 	value.Port = htons(uint16(addr.Port))
 	value.Addr = htonl(
 		0 |
@@ -139,7 +139,7 @@ func (l *XDPLink) AddIPv4Redirect(addr *net.UDPAddr, cids ...[]byte) error {
 			(uint32(ip[3]) << 0 * 8))
 
 	for _, cid := range cids {
-		var key quicketxdpCid
+		var key quicpipexdpCid
 		copy(key.Cid[:], cid)
 
 		// in the future maybe use the batch API
@@ -154,7 +154,7 @@ func (l *XDPLink) AddIPv4Redirect(addr *net.UDPAddr, cids ...[]byte) error {
 // RemoveIPv4Redirect removes any redirects assigned to the provided CIDs.
 func (l *XDPLink) RemoveIPv4Redirect(cids ...[]byte) error {
 	for _, cid := range cids {
-		var key quicketxdpCid
+		var key quicpipexdpCid
 		copy(key.Cid[:], cid)
 
 		// in the future maybe use the batch API

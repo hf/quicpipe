@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hf/quicket"
+	"github.com/hf/quicpipe"
 	"github.com/lucas-clemente/quic-go"
 )
 
@@ -62,11 +62,11 @@ func main() {
 
 	fmt.Printf("dialer: %s\n", udpconn.LocalAddr().String())
 
-	qket, err := quicket.Dial(
+	qket, err := quicpipe.Dial(
 		context.Background(),
 		udpconn,
 		"sni.local",
-		quicket.WithPointToPointQUICConfig(
+		quicpipe.WithPointToPointQUICConfig(
 			&quic.Config{
 				HandshakeIdleTimeout: time.Hour,
 			},
@@ -74,12 +74,12 @@ func main() {
 				InsecureSkipVerify: true,
 				NextProtos:         []string{"EXAMPLE"},
 			}),
-		quicket.WithRelayQUICConfig(nil),
-		quicket.WithRelayTLSConfig(func(ctx context.Context, tlscfg *tls.Config) error {
+		quicpipe.WithRelayQUICConfig(nil),
+		quicpipe.WithRelayTLSConfig(func(ctx context.Context, tlscfg *tls.Config) error {
 			tlscfg.InsecureSkipVerify = true
 			return nil
 		}),
-		quicket.WithDialRequest(dialRequest),
+		quicpipe.WithDialRequest(dialRequest),
 	)
 
 	if err != nil {

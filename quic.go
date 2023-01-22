@@ -1,4 +1,4 @@
-package quicket
+package quicpipe
 
 import (
 	"crypto/rand"
