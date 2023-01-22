@@ -16,7 +16,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hf/quicket"
+	"github.com/hf/quicpipe"
 	"github.com/lucas-clemente/quic-go"
 )
 
@@ -103,11 +103,11 @@ func main() {
 
 	fmt.Printf("accepter: %s %d\n", udpconn.LocalAddr().String(), len(packetData.Packet))
 
-	qket, err := quicket.Accept(
+	qket, err := quicpipe.Accept(
 		context.Background(),
 		udpconn,
 		packetData.Packet,
-		quicket.WithPointToPointQUICConfig(
+		quicpipe.WithPointToPointQUICConfig(
 			&quic.Config{
 				HandshakeIdleTimeout: time.Hour,
 			},
@@ -116,12 +116,12 @@ func main() {
 				NextProtos:         []string{"EXAMPLE"},
 				Certificates:       createCertificate(),
 			}),
-		quicket.WithRelayQUICConfig(nil),
-		quicket.WithRelayTLSConfig(func(ctx context.Context, tlscfg *tls.Config) error {
+		quicpipe.WithRelayQUICConfig(nil),
+		quicpipe.WithRelayTLSConfig(func(ctx context.Context, tlscfg *tls.Config) error {
 			tlscfg.InsecureSkipVerify = true
 			return nil
 		}),
-		quicket.WithAcceptRequest(acceptRequest),
+		quicpipe.WithAcceptRequest(acceptRequest),
 	)
 	if err != nil {
 		panic(err)

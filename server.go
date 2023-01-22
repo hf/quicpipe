@@ -1,4 +1,4 @@
-package quicket
+package quicpipe
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type Association struct {
 	Addr          net.Addr
 }
 
-var ErrAssociationNotFound = errors.New("quicket: association for this connection ID does not exist")
+var ErrAssociationNotFound = errors.New("quicpipe: association for this connection ID does not exist")
 
 type Store interface {
 	PutAssociation(ctx context.Context, association Association) error
